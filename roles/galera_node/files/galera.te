@@ -1,0 +1,23 @@
+module galera 1.0;
+
+require {
+        type swapfile_t;
+        type sysctl_net_t;
+        type rsync_exec_t;
+        type kerberos_port_t;
+        type mysqld_t;
+        class tcp_socket name_bind;
+        class dir search;
+        class file { execute execute_no_trans getattr open read };
+}
+
+#============= mysqld_t ==============
+
+#!!!! This avc can be allowed using the boolean 'nis_enabled'
+allow mysqld_t kerberos_port_t:tcp_socket name_bind;
+allow mysqld_t rsync_exec_t:file { execute execute_no_trans getattr open read };
+
+#!!!! The file '/swapfile' is mislabeled on your system.
+#!!!! Fix with $ restorecon -R -v /swapfile
+allow mysqld_t swapfile_t:file getattr;
+allow mysqld_t sysctl_net_t:dir search;

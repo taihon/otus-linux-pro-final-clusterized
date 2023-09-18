@@ -1,0 +1,35 @@
+---
+- name: Copy keepalived.rpm
+  ansible.builtin.copy:
+    src: keepalived-2.2.8-1.el7.x86_64.rpm
+    dest: /tmp/keepalived.rpm
+- name: Install required packages
+  ansible.builtin.yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - /tmp/keepalived.rpm
+    - epel-release
+- name: Generate keepalived config and check scripts
+  ansible.builtin.template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+  with_items:
+    - src: keepalived.conf.j2
+      dest: /etc/keepalived/keepalived.conf
+    - src: check_script.sh.j2
+      dest: "/etc/keepalived/check_{{keepalived_track_process}}.sh"
+- name: Enable keepalived
+  ansible.builtin.systemd:
+    enabled: yes
+    name: keepalived
+    state: restarted
+- name: Allow vrrp
+  ansible.posix.firewalld:
+    rich_rule: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  with_items:
+    - rule protocol value="vrrp" accept
+    - rule protocol value="ah" accept

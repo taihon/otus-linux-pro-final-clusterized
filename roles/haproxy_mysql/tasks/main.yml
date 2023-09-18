@@ -1,0 +1,30 @@
+---
+- name: Install haproxy
+  ansible.builtin.yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - haproxy
+    - libselinux-python
+    - libselinux-python
+    - libsemanage-python
+- name: Allow haproxy to listen on any port
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: yes
+    persistent: yes
+- name: Template haproxy.cfg
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+- name: Open port 3306
+  ansible.builtin.firewalld:
+    port: 3306/tcp
+    permanent: yes
+    immediate: yes
+    state: enabled
+- name: Start haproxy
+  ansible.builtin.systemd:
+    name: haproxy
+    state: started
+    enabled: true

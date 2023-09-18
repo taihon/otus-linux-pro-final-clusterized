@@ -1,0 +1,28 @@
+---
+- name: Add borg-backup service
+  ansible.builtin.template:
+    src: "borg-backup.service.j2"
+    dest: "/etc/systemd/system/borg-backup.service"
+  when: 
+      - backup_folder is defined
+- name: Copy borg-backup timer
+  ansible.builtin.copy:
+    src: "files/borg-backup.timer"
+    dest: /etc/systemd/system/borg-backup.timer
+  when: 
+      - backup_folder is defined
+- name: Systemd reload to pickup new service
+  ansible.builtin.systemd:
+    daemon-reload: true
+    enabled: true
+    state: started
+    name: "borg-backup.service"
+  when: 
+      - backup_folder is defined
+- name: Start timer
+  ansible.builtin.systemd:
+    name: "borg-backup.timer"
+    state: started
+    enabled: true
+  when: 
+      - backup_folder is defined

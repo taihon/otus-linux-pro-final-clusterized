@@ -1,0 +1,6 @@
+---
+- name: Generate cert if it doesn't exist locally
+  include_tasks: generate-certs.yml
+  when: 
+    - "lookup('ansible.builtin.fileglob','files/certs/*.crt') == []"
+    - "ansible_hostname == groups.frontends[0]"

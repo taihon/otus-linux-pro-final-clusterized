@@ -1,0 +1,28 @@
+global_defs{
+    router_id {{ansible_host}}
+}
+vrrp_script check_{{keepalived_track_process}} {
+      script "/etc/keepalived/check_{{keepalived_track_process}}.sh"
+      interval 2
+      weight -20
+      fall 3
+      rise 3
+}
+vrrp_instance VI_1 {
+    state {{keepalived_role}}
+    interface eth1
+    virtual_router_id {{keepalived_router_id}}
+    priority {{keepalived_priority}}
+    advert_int 1
+    mcast_src_ip {{ansible_host}}/24
+    virtual_ipaddress {
+        {{keepalived_vip}}/24
+    }
+    authentication {
+        auth_type PASS
+        auth_pass 92135543
+    }
+    track_script {
+        check_{{keepalived_track_process}}
+    }
+}

@@ -1,0 +1,22 @@
+---
+- set_fact:
+    front_server: "{{ hostvars[item]['keepalived_vip'] }}"
+  with_items: "{{ groups.frontends|first }}"
+- name: Enable masquerade
+  ansible.posix.firewalld:
+    masquerade: true
+    state: enabled
+    immediate: true
+    permanent: true
+- name: Add forwarded port to balancer
+  ansible.posix.firewalld:
+    rich_rule: "rule family=ipv4 forward-port port=443 protocol=tcp to-port=443 to-addr={{front_server}}"
+    permanent: true
+    immediate: true
+    state: enabled
+- name: Add https service
+  ansible.posix.firewalld:
+    service: https
+    permanent: true
+    immediate: true
+    state: enabled

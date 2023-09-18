@@ -1,0 +1,43 @@
+- name: Install EPEL repo
+  ansible.builtin.yum:
+    name: epel-release
+    state: installed
+- name: install setuptools
+  ansible.builtin.yum:
+    name: "{{ item }}"
+  with_items:
+    - python-setuptools
+    - python2-pip
+- name: upgrade pip
+  ansible.builtin.command: pip install --upgrade pip==20.3
+  changed_when: false
+- name: install cryptography
+  ansible.builtin.pip:
+    name: cryptography
+- name: create csr directory
+  ansible.builtin.file:
+    path: /etc/ssl/csr
+    state: directory
+- name: generate private key
+  community.crypto.openssl_privatekey:
+    path: /etc/ssl/certs/priv.key
+- name: generate csr
+  community.crypto.openssl_csr:
+    common_name: "{{ ssl_common_name }}"
+    country_name: "RU"
+    privatekey_path: /etc/ssl/certs/priv.key
+    path: /etc/ssl/csr/priv.csr
+- name: generate cert
+  community.crypto.x509_certificate:
+    path: /etc/ssl/certs/pub.crt
+    privatekey_path: /etc/ssl/certs/priv.key
+    csr_path: /etc/ssl/csr/priv.csr
+    provider: selfsigned
+- name: Copy cert to control node
+  ansible.builtin.fetch:
+    src: "/etc/ssl/certs/{{ item }}"
+    dest: "files/certs/"
+    flat: true
+  with_items:
+    - pub.crt
+    - priv.key

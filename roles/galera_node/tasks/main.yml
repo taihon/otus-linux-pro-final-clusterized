@@ -1,0 +1,38 @@
+---
+#- name: Stop mysqld
+- name: Copy galera.repo
+  ansible.builtin.copy:
+    src: galera.repo
+    dest: /etc/yum.repos.d
+- name: Remove mysql-community-client-plugins
+  ansible.builtin.yum:
+    name: mysql-community-client-plugins.x86_64
+    state: absent
+- name: Install galera and wsrep
+  ansible.builtin.yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - galera-4
+    - mysql-wsrep-8.0
+    - libselinux-python
+    - policycoreutils-python
+
+- name: Configure firewalld and selinux
+  include_tasks: firewalld-selinux.yml
+- name: Template galera.cnf
+  ansible.builtin.template:
+    src: galera.cnf.j2
+    dest: /etc/my.cnf.d/galera.cnf
+- name: Ensure loading of my.cnf.d files
+  ansible.builtin.lineinfile:
+    path: /etc/my.cnf
+    line: "!includedir /etc/my.cnf.d/"
+- name: Bootstrap cluster
+  include_tasks: bootstrap-cluster.yml
+  when:
+    - bootstrap_cluster == true
+- name: Start mysqld normally if not first node
+  ansible.builtin.systemd:
+    name: mysqld
+    state: started

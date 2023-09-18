@@ -1,0 +1,66 @@
+---
+- name: Install borgbackup
+  ansible.builtin.yum:
+    name: borgbackup
+    state: present
+- name: Create borg user
+  ansible.builtin.user:
+    name: borg
+    state: present
+    shell: /bin/bash
+- name: Copy all public keys from clients
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /tmp
+    owner: root
+    mode: 0600
+  with_fileglob:
+    - "files/backup/*.pub"
+- name: Get list of public keys
+  ansible.builtin.find:
+    paths: /tmp
+    pattern: "*.pub"
+  register: pubkeys_list
+- name: Read all public keys and prepend command to it
+  ansible.builtin.command: awk '{$0="command=\"/usr/bin/borg serve\" " $0} 1' {{ item.path }}
+  with_items: "{{ pubkeys_list.files }}"
+  register: pubkeys_contents
+- name: Try module
+  ansible.builtin.authorized_key:
+    key: "{{ item.stdout }}"
+    comment: "{{ ansible_hostname }}"
+    user: borg
+    key_options: 'command="/usr/bin/borg serve"'
+  with_items: "{{ pubkeys_contents.results }}"
+- name: Generate keypair
+  become: true
+  community.crypto.openssh_keypair:
+    group: root
+    path: /root/.ssh/id_rsa
+  register: ssh_key
+- name: Add self public key to borg authorized_keys file
+  ansible.posix.authorized_key:
+    key: "{{ ssh_key.public_key }}"
+    comment: "{{ ansible_hostname }}"
+    user: borg
+    key_options: 'command="/usr/bin/borg serve"'
+- set_fact:
+    backup_central_server: "{{ hostvars[item]['ansible_host'] }}"
+  with_items: "{{ groups.backup_servers }}"
+- name: Get backup_server ECDSA key
+  ansible.builtin.shell: "ssh-keyscan {{ backup_central_server }} -T 10 2>/dev/null|grep ecdsa"
+  register: ssh_known_backup_central_server
+  ignore_errors: yes
+  changed_when: false
+  no_log: "true"
+- name: Add/update known_hosts in the /root/.ssh/known_hosts
+  become: true
+  ansible.builtin.known_hosts:
+    name: "{{ backup_central_server }}"
+    path: "~/.ssh/known_hosts"
+    key: "{{ ssh_known_backup_central_server.stdout }}"
+- name: Init borg repo
+  ansible.builtin.shell: "borg init -e none borg@{{ backup_central_server }}:backups"
+  register: result
+  changed_when: result.rc == 0
+  failed_when: result.rc == 2 and 'A repository already exists at' not in result.stderr or result.rc != 2 and result.rc != 0

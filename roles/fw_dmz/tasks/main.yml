@@ -1,0 +1,3 @@
+---
+- name: Configure FirewallD
+  include_tasks: firewalld.yml

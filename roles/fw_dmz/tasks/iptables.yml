@@ -1,0 +1,51 @@
+---
+- name: Allow port 22 (SSH)
+  become: yes
+  ansible.builtin.iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: 22
+    ctstate: NEW
+    syn: match
+    jump: ACCEPT
+    comment: Accept new SSH connections.
+- name: Allow related/established
+  become: yes
+  ansible.builtin.iptables:
+    chain: INPUT
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+- name: Enable SNAT for clients behind FW
+  become: yes
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    destination: ! 192.168.0.0/16
+    jump: MASQUERADE
+    out_interface: eth0
+- set_fact:
+    front_server: "{{ hostvars[item]['ansible_host'] }}"
+  with_items: "{{ groups.frontends }}"
+- name: DNAT to nginx in dmz
+  become: yes
+  ansible.builtin.iptables:
+    table: nat
+    chain: PREROUTING
+    protocol: tcp
+    match: tcp
+    destination_port: 443
+    to_destination: "{{front_server}}:443"
+    #in_interface: eth0
+    jump: DNAT
+- name: SNAT from dmz to outside
+  become: yes
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    protocol: tcp
+    source: "{{front_server}}/32"
+    source_port: 443
+    match: tcp
+    to_source: "{{ansible_host}}"
+    #out_interface: eth0
+    jump: SNAT

@@ -1,0 +1,21 @@
+[Unit]
+Description=Alertmanager Service
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/default/alertmanager
+User=alertmanager
+Group=alertmanager
+Type=simple
+ExecStart=/usr/local/bin/alertmanager \
+--config.file=/etc/alertmanager/alertmanager.yml \
+--storage.path=/var/lib/prometheus/alertmanager \
+--web.external-url http://{{wpdb_site_host}} \
+--web.route-prefix=/internal/alerts \
+$ALERTMANAGER_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+RestartSec=60
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

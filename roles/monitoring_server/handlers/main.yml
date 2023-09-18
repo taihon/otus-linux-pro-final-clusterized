@@ -1,0 +1,11 @@
+---
+- name: restart_prometheus_server
+  service:
+    name: "prometheus"
+    state: restarted
+    enabled: true
+- name: restart_alertmanager_server
+  service:
+    name: "alertmanager"
+    state: restarted
+    enabled: true

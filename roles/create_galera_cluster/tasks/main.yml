@@ -1,0 +1,6 @@
+---
+- name: Include role from galaxy
+  ansible.builtin.include_role:
+    name: mrlesmithjr.mariadb_galera_cluster
+  vars:
+    galera_cluster_nodes_group: "dbservers"

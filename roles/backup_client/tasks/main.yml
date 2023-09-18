@@ -1,0 +1,32 @@
+---
+- name: Install borgbackup
+  ansible.builtin.yum:
+    name: borgbackup
+    state: present
+- name: Generate keypair
+  become: true
+  community.crypto.openssh_keypair:
+    group: root
+    path: /root/.ssh/id_rsa
+  register: ssh_key
+- name: Grab public key from client to control node
+  ansible.builtin.fetch:
+    src: /root/.ssh/id_rsa.pub
+    dest: "files/backup/{{ ansible_hostname }}_id_rsa.pub"
+    flat: true
+- set_fact:
+    backup_central_server: "{{ hostvars[item]['ansible_host'] }}"
+  with_items: "{{ groups.backup_servers }}"
+- name: Get backup_server ECDSA key
+  ansible.builtin.shell: "ssh-keyscan {{ backup_central_server }} -T 10 2>/dev/null|grep ecdsa"
+  register: ssh_known_backup_central_server
+  ignore_errors: yes
+  changed_when: false
+  no_log: "true"
+- name: Add/update known_hosts in the /root/.ssh/known_hosts
+  become: true
+  ansible.builtin.known_hosts:
+    name: "{{ backup_central_server }}"
+    path: "~/.ssh/known_hosts"
+    key: "{{ ssh_known_backup_central_server.stdout }}"
+

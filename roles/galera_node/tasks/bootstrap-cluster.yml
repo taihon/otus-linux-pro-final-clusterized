@@ -1,0 +1,25 @@
+---
+- name: Stop mysqld
+  ansible.builtin.systemd:
+    name: mysqld
+    state: stopped
+- name: Force safe_to_bootstrap
+  ansible.builtin.lineinfile:
+    path: /var/lib/mysql/grastate.dat
+    regex: "^safe_to_bootstrap:"
+    line: "safe_to_bootstrap: 1"
+  when: 
+    - "ansible_hostname == ( groups.dbservers[0] )"
+  failed_when: false
+- name: Bootstrap cluster if node is first
+  ansible.builtin.command: /usr/bin/mysqld_bootstrap
+  when: 
+    - "ansible_hostname == ( groups.dbservers[0] )"
+- name: Wait for master to become available
+  ansible.builtin.wait_for:
+    host: "{{hostvars[groups.dbservers[0]]['ansible_host']}}"
+    port: 3306
+    delay: 1
+
+  # when:
+  #   - "ansible_hostname != ( groups.dbservers[0] )"

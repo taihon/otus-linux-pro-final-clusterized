@@ -1,0 +1,34 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+  external_labels:
+      monitor: 'monitor'
+
+scrape_configs:
+  - job_name: 'prometheus'
+
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /internal/prometheus/metrics
+  - job_name: 'nodes'
+    static_configs:
+{% for node in groups.monitored %}
+      - targets: ['{{ hostvars[node]['ansible_host'] }}:9100']
+        labels: {'host': '{{ node }}' }
+      - targets: ['{{ hostvars[node]['ansible_host'] }}:9117']
+        labels: {'host': '{{ node }}' }
+{% endfor %}
+{% for node in groups.frontends %}
+      - targets: ['{{ hostvars[node]['ansible_host'] }}:9113']
+        labels: {'host': '{{ node }}' }
+{% endfor %}
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+      - targets:
+        - localhost:9093
+      path_prefix: '/internal/alerts'
+rule_files:
+  - "alerts.yml"
