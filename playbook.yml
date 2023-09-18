@@ -1,0 +1,38 @@
+---
+- hosts: all
+  become: yes
+  roles:
+    - role: general_settings
+      tags: general
+- hosts: frontends
+  become: yes
+  roles:
+    - role: keepalived_node
+- hosts: dbservers
+  become: yes
+  roles:
+    - role: dbserver
+- hosts: dbservers
+  become: yes
+  roles:
+    - role: galera_node
+      tags: galera
+- hosts: haproxys
+  become: yes
+  roles:
+    - role: keepalived_node
+      tags: prx_keepalived
+    - role: haproxy_mysql
+      tags: prx_mysql
+- hosts: firewalls
+  become: yes
+  roles:
+    - role: fw_dmz
+      tags: router_tag
+- hosts: frontends
+  become: yes
+  roles:
+    - role: certs_gen
+      tags: certs
+    - role: frontend_nginx
+      tags: front_tag
