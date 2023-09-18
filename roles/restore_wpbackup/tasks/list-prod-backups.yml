@@ -1,0 +1,17 @@
+---
+- name: "Restore last {{hostvars[inventory_hostname]['backup_prefix']}} backup"
+  ansible.builtin.command:
+    cmd: "borg extract borg@{{ backup_central_server|quote }}:backups::{{last_backup_name.stdout|quote}}"
+    chdir: /
+  when:
+    - replication_role == "master"
+    - "ansible_hostname == groups.dbservers[0]"
+- name: List filename of per-table backup
+  ansible.builtin.find:
+    paths: 
+      - "/var/backup/wordpress"
+    patterns: "wp*.gz"
+  when:
+    - replication_role == "master"
+    - "ansible_hostname == groups.dbservers[0]"
+  register: find_wp_backup_files

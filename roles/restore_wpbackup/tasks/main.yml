@@ -1,0 +1,107 @@
+---
+- name: Add environment variable for borg
+  vars:
+    os_environment:
+    - key: BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK
+      value: "yes"
+  ansible.builtin.lineinfile:
+    dest: "/etc/environment"
+    state: present
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  with_items: "{{ os_environment }}"
+- set_fact:
+    backup_central_server: "{{ hostvars[item]['ansible_host'] }}"
+  with_items: "{{ groups.backup_servers }}"
+- set_fact:
+    backup_prefix: "{{hostvars[inventory_hostname]['backup_prefix']}}"
+- name: Get last backup name
+  ansible.builtin.shell:
+    cmd: "borg list borg@{{ backup_central_server|quote }}:backups|grep -i '{{ backup_prefix|quote}}'|tail -1|cut -f1 -d' '"
+  register: last_backup_name
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+- name: dbg
+  debug:
+    var: last_backup_name
+- name: List production backups
+  include_tasks: list-prod-backups.yml
+  when: 
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"    
+    - last_backup_name.stdout|length > 0
+- name: Check if production backup exists
+  ansible.builtin.stat:
+    path: /var/backup/wordpress/wp_options.gz
+  register: prod_backup
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+- name: List initial backups
+  include_tasks: list-initial-backups.yml
+  # when: not prod_backup.stat.exists and replication_role == "master"
+  when: 
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+    - (last_backup_name.stdout|length == 0) or (not prod_backup.stat.exists)
+  # when: prod_backup.stat.exists and replication_role == "master"
+#   when:
+#     - replication_role == "master"
+#     - (find_wp_backup_files.files|length)>0
+# - name: List filename of per-table backup
+#   ansible.builtin.find:
+#     paths: 
+
+#       - "/var/backup/wordpress"
+#     patterns: "wp*.gz"
+#   when:
+#     - replication_role == "master"
+#     - backups_exist is not defined
+#   register: find_wp_backup_files
+# - name: dbg
+#   debug:
+#     var: find_wp_backup_files
+- set_fact: wp_backup_files="{{ find_wp_backup_files.files|map(attribute='path')|list }}"
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+
+- name: Dump variable
+  ansible.builtin.debug:
+    var: wp_backup_files
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+- name: Drop wp database
+  community.mysql.mysql_db:
+    name: "{{ wpdb_dbname }}"
+    state: absent
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+- name: Recreate wp database
+  community.mysql.mysql_db:
+    name: "{{ wpdb_dbname }}"
+    state: present
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+- name: zcat backup gz files into '{{ wpdb_dbname }}'
+  ansible.builtin.shell: zcat {{ item }} | mysql --skip-column-names {{ wpdb_dbname }}
+  with_items: "{{ wp_backup_files }}"
+  async: 60
+  poll: 0
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+- name: Force site_url in wp_options
+  community.mysql.mysql_query:
+    login_db: "{{ wpdb_dbname }}"
+    query: update wp_options set option_value=%(site_url)s where option_id=2
+    named_args:
+      site_url: "https://{{wpdb_site_host}}"
+  when:
+    - restore_wpbackup == true
+    - "ansible_hostname == groups.dbservers[0]"
+#leaves some garbage behind

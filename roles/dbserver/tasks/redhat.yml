@@ -3,7 +3,10 @@
     path: /etc/my.cnf.d/galera.cnf
   register: galera_config
 - set_fact:
-    galera_installed: galera_config.stat.exists
+    galera_installed: "{{galera_config.stat.exists}}"
+- name: dbg
+  debug:
+    var: galera_installed
 - name: Disable default repo
   ansible.builtin.yum_repository:
     name: "{{ item }}"

@@ -17,3 +17,4 @@ wpdb_site_host: "192.168.88.43:8082"
 ssl_common_name: "192.168.88.43" 
 telegram_bot_token_file: "files/telebot.token"
 bootstrap_cluster: false
+restore_wpbackup: false

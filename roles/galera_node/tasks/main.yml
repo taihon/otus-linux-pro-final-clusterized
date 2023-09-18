@@ -17,6 +17,7 @@
     - mysql-wsrep-8.0
     - libselinux-python
     - policycoreutils-python
+    - python2-PyMySQL
 
 - name: Configure firewalld and selinux
   include_tasks: firewalld-selinux.yml

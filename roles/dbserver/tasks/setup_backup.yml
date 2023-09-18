@@ -3,8 +3,7 @@
   ansible.builtin.file:
     path: "/var/backup/{{ wpdb_dbname }}/"
     state: directory
-  when:
-    replication_role == "slave"
+  when: replication_role is defined and (replication_role == "master")
 - name: Copy backup script
   ansible.builtin.template:
     src: backup.sh.j2
@@ -12,8 +11,7 @@
     mode: '0700'
     owner: 'root'
     group: 'root'
-  when:
-    replication_role == "slave"
+  when: replication_role is defined and (replication_role == "master")
 - name: Setup cron job for backup
   ansible.builtin.cron:
     name: Mysql autobackup on per-table basis
@@ -22,9 +20,7 @@
     user: root
     cron_file: mysql-per-table-backup
     job: "/opt/backup_db_each_table.sh"
-  when:
-    replication_role == "slave"
+  when: replication_role is defined and (replication_role == "master")
 - name: Execute backup once
   ansible.builtin.command: "/opt/backup_db_each_table.sh"
-  when:
-    replication_role == "slave"
+  when: replication_role is defined and (replication_role == "master")

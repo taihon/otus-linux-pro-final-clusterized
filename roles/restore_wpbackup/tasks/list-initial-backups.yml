@@ -1,0 +1,17 @@
+---
+- name: Copy backup to master db server
+  ansible.builtin.copy:
+    src: "files/backup/wordpress"
+    dest: "/tmp/wpbackup"
+  when:
+    - replication_role == "master"
+    - "ansible_hostname == groups.dbservers[0]"
+- name: List filename of already existing backups
+  ansible.builtin.find:
+    paths: 
+    - "/tmp/wpbackup/wordpress"
+    patterns: "wp*.gz"
+  when:
+    - replication_role == "master"
+    - "ansible_hostname == groups.dbservers[0]"
+  register: find_wp_backup_files

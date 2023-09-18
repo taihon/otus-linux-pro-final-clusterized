@@ -6,13 +6,17 @@
   when: ansible_facts['os_family']|lower == 'debian'
 - name: Secure mysql installation
   include_tasks: secure_mysql.yml
-  when: ansible_facts['os_family']|lower == 'redhat'
+  when: 
+    - ansible_facts['os_family']|lower == 'redhat'
+    - not galera_installed
 # - name: Setup replication
 #   include_tasks: replication.yml
 #   when: ansible_facts['os_family']|lower == 'redhat'
 - name: Install {{ wpdb_dbname }} on master
   include_tasks: create_wpdb.yml
-  when: ansible_facts['os_family']|lower == 'redhat'
-# - name: Setup backups on slave
-#   include_tasks: setup_backup.yml
+  when: 
+    - ansible_facts['os_family']|lower == 'redhat'
+    - not galera_installed
+- name: Setup backups on slave
+  include_tasks: setup_backup.yml
 #   when: ansible_facts['os_family']|lower == 'redhat'

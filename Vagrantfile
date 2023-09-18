@@ -90,13 +90,12 @@ MACHINES = {
         :memory => "256",
         :net => [
             {ip:'10.0.10.10', adapter:2,netmask:"255.255.255.0"},
-	    {ip:'172.16.1.10', adapter:3,netmask:"255.255.255.0"},
-#            {ip:'172.16.1.5', adapter:5,netmask:"255.255.255.0"},
+	        {ip:'172.16.1.10', adapter:3,netmask:"255.255.255.0"},
             {ip:'192.168.11.10', adapter:4,netmask:"255.255.255.0"}
         ],
-	:ports => [
-	    {guest: 443, host: 8082}
-	]
+        :ports => [
+            {guest: 443, host: 8082}
+        ]
     },
     :monitoring => {
         :box_name => "centos/7",

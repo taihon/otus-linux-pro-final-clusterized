@@ -12,6 +12,7 @@
   become: yes
   roles:
     - role: dbserver
+      tags: dbserver_tag
 - hosts: dbservers
   become: yes
   roles:
@@ -36,3 +37,45 @@
       tags: certs
     - role: frontend_nginx
       tags: front_tag
+- hosts: backends
+  become: yes
+  roles:
+    - role: backend_httpd
+      tags: backend_httpd_tag
+    - role: backend_php
+      tags: backend_php_tag
+    - role: backend_website
+      tags: backend_website_tag
+- hosts: backup_clients
+  become: yes
+  roles: 
+    - role: backup_client
+      tags: backup_cl_tag
+- hosts: backup_servers
+  become: yes
+  roles:
+    - role: backup_server
+      tags: backup_srv_tag
+- hosts: dbservers
+  become: yes
+  roles:
+    - role: restore_wpbackup
+      tags: restore_db_tag
+- hosts: monitored
+  become: yes
+  roles:
+    - role: monitored_node
+      tags: monitored_node_tag
+    - role: logging_node
+      tags: logging_node_tag
+- hosts: backup_clients
+  become: yes
+  roles:
+    - role: borg_autobackup
+- hosts: monitoring
+  become: yes
+  roles:
+    - role: monitoring_server
+      tags: monitoring_server_tag
+    - role: logger_server
+      tags: logger_tag

@@ -15,12 +15,8 @@
     extra_opts: [--strip-components=1]
     remote_src: yes
 - set_fact:
-    master_ip: "{{ hostvars[item]['ansible_host'] }}"
-    master_server: "{{ item }}"
-  with_items: "{{ groups.dbservers }}"
-  when:
-    - hostvars[item].replication_role == 'master'
-    - master_ip is not defined
+    master_ip: "{{ hostvars[item]['keepalived_vip'] }}"
+  with_items: "{{ groups.haproxys|first }}"
     #  - set_fact:
     #     loadbalancer_ip: "{{ hostvars[item]['ansible_host'] }}"
     #   with_items: "{{ groups.frontends | first }}"

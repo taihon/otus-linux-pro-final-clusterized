@@ -1,4 +1,8 @@
 ---
+- name: install pymysql
+  ansible.builtin.yum:
+    name: python2-PyMySQL
+    state: present
 - name: Secure mysql - get temp password
   shell: >-
     grep 'temporary password' /var/log/mysqld.log |
