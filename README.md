@@ -4,11 +4,11 @@
 Использованы Ansible, borgbackup, nginx, apache2, prometheus, alertmanager, mysql, php, wordpress и т.д.
 
 Схема инфраструктуры приведена на рисунке:
-![схема решения](./otus-final-scheme.png)
+![схема решения](./cluster-otus-final-scheme.png)
 Для разворота:
 
 1. Склонируйте репозиторий;
-2. Скачайте файл с rpm [отсюда](https://github.com/taihon/otus-linux-pro-final/releases/download/0.0.1-alpha/files.tar.gz);
+2. Скачайте файл с rpm [отсюда](https://github.com/taihon/otus-linux-pro-final-clusterized/releases/download/0.0.1-alpha/files.tar.gz);
 3. Разверните архив с rpm в ansible/files
 4. Установите коллекции ansible:
 
@@ -27,7 +27,7 @@
 8. Запустите vagrant up
 9. Запустите разворот командой
     ```
-    ansible-playbook playbook.yml --extra-vars='{"restore_wpbackup":true,"bootstrap_cluster":true}'
+    ansible-playbook playbook.yml --extra-vars='{"bootstrap_cluster":true, "restore_wpbackup":true}'
     ```
 В случае, если всё сделано верно, то станут доступны следующие машины
 - monitoring (172.16.1.2) - сервер мониторинга (prometheus, elk, alertmanager)
